@@ -37,6 +37,10 @@ public string ItfaPlanHesapla(DateTime? krediKullandirmaTarih, decimal? krediTut
             {
                 return "Faiz ödemesiz süresi ana para ödemesiz süresinden küçük olmalı.";
             }
+            else if(anaParaOdemesizSure >= vade)
+            {
+                return "Ana paranın ödemesiz süresi vadeden büyük veya eşit olamaz";
+            }
             #endregion
             #region ödeme ve faiz periyotlarına göre efektif faiz hesabı
             decimal vergisizFaizOrani = 0.00m;
@@ -94,19 +98,10 @@ public string ItfaPlanHesapla(DateTime? krediKullandirmaTarih, decimal? krediTut
             // Ödemesiz sürede binecek faizi hesaplar
             var sadeceFaizOdenenSure = (anaParaOdemesizSure - faizOdemesizSure) / anaParaOdemePeriyot;
 
-            // GALİBA BU DA Bİ İŞE YARAMIYOR
-            if (faizOdemesizSure == anaParaOdemesizSure)
+            for (int i = 1; i <= faizOdemesizSure; i++)
             {
-                faizOdemesizSure = 0;
-            }
-
-            if (faizOdemesizSure > 0)
-            {
-                for (int i = 1; i <= anaParaOdemesizSure - faizOdemesizSure; i++)
-                {
-                    kalanBorc += kalanBorc * vergiliFaizOrani;
-                    faizOdenmeyenSuredeBinenFaiz = kalanBorc - krediTutar.Value;
-                }
+                kalanBorc += kalanBorc * vergiliFaizOrani;
+                faizOdenmeyenSuredeBinenFaiz = kalanBorc - krediTutar.Value;
             }
 
             for (int i = 1; i <= sadeceFaizOdenenSure; i++)
@@ -164,9 +159,9 @@ public string ItfaPlanHesapla(DateTime? krediKullandirmaTarih, decimal? krediTut
                 {
                     Tarih = krediKullandirmaTarih.Value.ToString("dd.MM.yyyy"),
                     TaksitNo = (i + sadeceFaizOdenenSure.Value).ToString(),
-                    TaksitMiktari = tempTaksit,
+                    TaksitMiktari = i == 1 && faizOdenmeyenSuredeBinenFaiz > 0 ? faizOdenmeyenSuredeBinenFaiz + tempTaksit : tempTaksit,
                     Anapara = tempTaksit - vergiliFaiz,
-                    Faiz = vergisizFaiz,
+                    Faiz = i == 1 && faizOdenmeyenSuredeBinenFaiz > 0 ? faizOdenmeyenSuredeBinenFaiz + vergisizFaiz : vergisizFaiz,
                     KalanPara = kalanBorc < 0.01m ? 0 : kalanBorc
                 });
             }
