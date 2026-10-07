@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Efkan Başer'in C# ödeme planı hesaplayıcısı. Ödemesiz dönemler, ödeme aralığı ve taksitlerin görsel incelemesi.">
+  <title>Loan Studio · Efkan Başer</title>
+  <link rel="stylesheet" href="styles.css"><script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="/"><span class="brand-icon">L<span>.</span></span> Loan Studio</a><div class="header-right"><span class="tag">C# / .NET</span><a href="https://github.com/efkanbaser/LoanPaymentCalculator" target="_blank" rel="noopener">Kaynak kod ↗</a></div></header>
+  <main>
+    <section class="intro"><div><p class="eyebrow">EFKAN BAŞER / LOAN PAYMENT CALCULATOR</p><h1>Bir kredinin bütün hikâyesi.</h1><p class="lead">Oranları değiştir. Ödemesiz dönemleri keşfet.<br>İlk taksitten son bakiyeye, planın nasıl oluştuğunu gör.</p></div><div class="intro-note"><span class="live-dot"></span> Gerçek C# hesaplama motoru<span class="muted">Örnek senaryolar · Şirket verisi içermez</span></div></section>
+    <div class="workspace">
+      <aside class="setup">
+        <div class="section-title"><h2>Planı oluştur</h2><span>01</span></div>
+        <div class="presets" aria-label="Hazır senaryolar"><button type="button" class="preset active" data-preset="standard">Standart</button><button type="button" class="preset" data-preset="grace">Ödemesiz</button><button type="button" class="preset" data-preset="quarter">3 ayda bir</button><button type="button" class="preset" data-preset="zero">Sıfır faiz</button></div>
+        <form id="loan-form">
+          <label class="field amount-field">Kredi tutarı <span class="input-wrap"><span class="input-prefix">₺</span><input id="principal" name="principal" type="number" min="1" max="1000000000" step="0.01" value="1000000" required></span></label>
+          <div class="field-grid"><label class="field">Yıllık nominal faiz (%)<input name="annualRate" type="number" value="36" min="0" max="200" step="0.01" required></label><label class="field">Başlangıç tarihi<input name="startDate" type="date" value="2026-10-07" required></label></div>
+          <div class="field-grid"><label class="field">Vade<input name="term" type="number" value="24" min="1" max="600" step="1" required></label><label class="field">Vade birimi<select name="period"><option value="Ay">Ay</option><option value="Gün">Gün</option><option value="Yıl">Yıl</option></select></label></div>
+          <label class="field">Ödeme aralığı <span class="input-wrap"><input name="paymentInterval" type="number" value="1" min="1" max="600" step="1" required><span id="interval-unit" class="input-suffix">ayda bir</span></span></label>
+          <div class="form-divider"></div><p class="form-group-title">Ödemesiz dönem</p>
+          <div class="field-grid"><label class="field">Anapara<input name="principalGrace" type="number" value="0" min="0" max="599" step="1" required></label><label class="field">Faiz<input name="interestGrace" type="number" value="0" min="0" max="599" step="1" required></label></div>
+          <p class="hint">Süreler seçilen vade birimindedir. Faiz ve anapara ödemeleri aynı aralıkla hesaplanır.</p>
+          <details class="advanced"><summary>Vergi ve tarih seçenekleri<span>+</span></summary><div class="field-grid"><label class="field">KKDF (%)<input name="kkdf" type="number" value="0" min="0" max="100" step="0.01" required></label><label class="field">BSMV (%)<input name="bsmv" type="number" value="0" min="0" max="100" step="0.01" required></label></div><label class="check"><input name="shiftBusinessDays" type="checkbox"> Hafta sonu / özel tatilleri sonraki iş gününe ötele</label><label class="field">Özel tatil tarihleri<textarea name="holidays" rows="2" placeholder="2026-10-29, 2027-01-01"></textarea></label><p class="hint">Takvim otomatik yüklenmez. Oranlar örnek girdilerdir; güncel yasal oran varsayılmaz.</p></details>
+          <button id="calculate" type="submit" class="calculate">Ödeme planını hesapla <span>→</span></button>
+          <p id="form-error" class="form-error" role="alert" hidden></p>
+        </form>
+      </aside>
+      <div class="results" id="results" aria-busy="true">
+        <div class="result-header"><p class="eyebrow">PLANIN ÖZETİ</p><span id="plan-caption" class="muted">Hesaplanıyor…</span></div>
+        <p id="stale-notice" class="stale-notice" role="status" hidden>Girdiler değişti. Aşağıda önceki plan gösteriliyor; güncellemek için hesapla.</p>
+        <section class="hero-result"><div><p class="muted">Toplam geri ödeme</p><div class="big-number" id="total-payment">—</div><p class="hero-detail" id="first-last">Plan hazırlanıyor.</p></div><div class="cost-ratio"><svg viewBox="0 0 120 120" role="img" aria-label="Toplam ödemede anapara payı"><circle class="ring-track" cx="60" cy="60" r="48"></circle><circle id="principal-ring" class="ring-value" cx="60" cy="60" r="48"></circle></svg><div><strong id="principal-ratio">—</strong><span>anapara</span></div></div></section>
+        <div class="summary-strip"><div><span>Anapara</span><strong id="total-principal">—</strong></div><div><span>Faiz toplamı</span><strong id="total-interest">—</strong></div><div><span>Vergi bileşeni</span><strong id="total-tax">—</strong></div></div>
+        <section class="chart-section"><div class="section-title"><div><h2>Bakiye nasıl azalıyor?</h2><p class="muted">Her ödemeden sonra kalan anapara</p></div><div class="chart-legend"><span></span> Kalan bakiye</div></div><div id="chart" class="chart" aria-live="polite"></div><div class="chart-caption"><span id="chart-start">—</span><span>Ödeme sırası →</span><span id="chart-end">—</span></div></section>
+        <section class="schedule-section"><div class="section-title"><div><h2>Ödeme takvimi</h2><p id="table-caption" class="muted">—</p></div><div class="export-actions"><button id="export-csv" type="button" disabled>CSV indir ↓</button><button id="export-tsv" type="button" disabled>Excel için TSV ↓</button><button id="print" type="button" disabled>Yazdır</button></div></div><div class="table-scroll"><table><caption class="sr-only">Taksit bazında ödeme planı</caption><thead><tr><th scope="col">No</th><th scope="col">Ödeme tarihi</th><th scope="col">Taksit</th><th scope="col">Anapara</th><th scope="col">Faiz</th><th scope="col">Vergi bileşeni</th><th scope="col">Kalan bakiye</th></tr></thead><tbody id="payment-rows"></tbody></table></div></section>
+        <details class="calculation-notes"><summary>Bu plan nasıl hesaplanıyor?</summary><ul><li>Yıllık nominal oran; aylık dönemlerde 12'ye, günlük dönemlerde 365'e bölünür. Birden fazla birimlik ödeme aralığında bileşik oran kullanılır.</li><li>Mevcut hesaplama kaynak kodundaki ödemesiz dönem davranışı korunmuştur. Faiz ödemesiz dönemde başlangıç adımı da faiz tahakkukuna dahil edilir; bu bir genel banka hesaplama standardı iddiası değildir.</li><li>Vergi bileşeni, çıktıdaki taksit − anapara − faiz farkıdır. KKDF ve BSMV ayrı tahakkuk satırları olarak hesaplanmaz; kuruş yuvarlaması bu farka yansıyabilir.</li><li>Ödemesiz dönemin ilk tahsilatı normal taksitlerden farklı olabilir. Son ödeme kalan bakiyeyi kapatır; tutarı diğerlerinden farklı olabilir.</li><li>Tarihler önceki tarihe gün/ay/yıl eklenerek ilerler. Öteleme yalnızca tahsilat tarihini değiştirir; ek faiz hesaplamaz. Özel tatiller kullandığın girdilerden gelir.</li><li>Hesaplama C# decimal ile sunucuda yapılır. Veriler kaydedilmez; tarayıcıdaki grafik sadece dönen planı gösterir.</li></ul></details>
+      </div>
+    </div>
+    <footer><span>Efkan Başer · Bir üretim hesaplamasından bağımsız demoya.</span><span>Hesaplama mantığı açık. Varsayımlar görünür.</span></footer>
+  </main>
+</body>
+</html>

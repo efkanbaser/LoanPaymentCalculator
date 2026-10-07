@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/LoanPaymentCalculator.Core/LoanPaymentCalculator.Core.csproj" />
+  <Project Path="src/LoanPaymentCalculator.Demo/LoanPaymentCalculator.Demo.csproj" />
+  <Project Path="tests/LoanPaymentCalculator.Checks/LoanPaymentCalculator.Checks.csproj" />
+</Solution>
